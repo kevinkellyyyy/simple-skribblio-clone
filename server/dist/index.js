@@ -8,7 +8,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 3001;
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
@@ -36,6 +36,8 @@ io.on("connection", (socket) => {
         io.emit("clear");
     });
 });
+app.get("/", (_req, res) => res.send("OK"));
+app.get("/healthz", (_req, res) => res.send("healthy"));
 server.listen(port, () => {
     console.log(`server running & listening on port ${port}`);
 });
