@@ -1,9 +1,12 @@
-const express = require("express");
-const http = require("http");
+// const express = require("express");
+// const http = require("http");
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+
+const port = process.env.PORT || 3001;
 const app = express();
 const server = http.createServer(app);
-
-import { Server } from "socket.io";
 
 const io = new Server(server, {
   cors: {
@@ -48,6 +51,6 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3001, () => {
-  console.log("listening on port 3001");
+server.listen(port, () => {
+  console.log(`server running & listening on port ${port}`);
 });
