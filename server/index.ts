@@ -51,6 +51,9 @@ io.on("connection", (socket) => {
   });
 });
 
+app.get("/", (_req, res) => res.send("OK"));
+app.get("/healthz", (_req, res) => res.send("healthy"));
+
 server.listen(port, () => {
   console.log(`server running & listening on port ${port}`);
 });

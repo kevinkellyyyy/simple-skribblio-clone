@@ -6,7 +6,11 @@ import { ChromePicker } from "react-color";
 import { drawLine } from "../utils/drawLine";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:3001");
+const socket = io("https://simple-skribblio-clone-production.up.railway.app", {
+  // keep defaults for best proxy compatibility
+  // transports: ["websocket", "polling"],
+  // path: "/socket.io",
+});
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface PageProps {}
