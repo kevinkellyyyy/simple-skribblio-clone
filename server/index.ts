@@ -4,7 +4,7 @@ import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const port = process.env.PORT ? Number(process.env.PORT) : 3001;
 const app = express();
 const server = http.createServer(app);
 
@@ -54,6 +54,6 @@ io.on("connection", (socket) => {
 app.get("/", (_req, res) => res.send("OK"));
 app.get("/healthz", (_req, res) => res.send("healthy"));
 
-server.listen(Number(process.env.PORT) || 3001, "0.0.0.0", () => {
+server.listen(port, "0.0.0.0", () => {
   console.log(`server running & listening on port ${port}`);
 });
