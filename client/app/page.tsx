@@ -3,6 +3,10 @@
 import { FC, useEffect, useState } from "react";
 import { useDraw } from "../hooks/useDraw";
 import { ChromePicker } from "react-color";
+import { drawLine } from "../utils/drawLine";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:3001");
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface PageProps {}
@@ -12,28 +16,71 @@ const Page: FC<PageProps> = ({}) => {
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [lineWidth, setLineWidth] = useState(5);
 
-  const { canvasRef, onMouseDown, clear } = useDraw(drawLine);
+  const { canvasRef, onMouseDown, clear } = useDraw(createLine);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
 
-  function drawLine({ prevPoint, currentPoint, ctx }: Draw) {
-    const { x: currX, y: currY } = currentPoint;
-    const lineColor = selectedColor;
+    const ctx = canvasRef.current?.getContext("2d");
 
-    const startPoint = prevPoint ?? currentPoint;
-    ctx.beginPath();
-    ctx.lineWidth = lineWidth;
-    ctx.strokeStyle = lineColor;
-    ctx.moveTo(startPoint.x, startPoint.y);
-    ctx.lineTo(currX, currY);
-    ctx.stroke();
+    // Notify the server that the new client is ready
+    socket.emit("client-ready");
 
-    ctx.fillStyle = lineColor;
-    ctx.beginPath();
-    ctx.arc(startPoint.x, startPoint.y, lineWidth, 0, 0);
-    ctx.fill();
+    // Request the current canvas state from the server
+    socket.on("get-canvas-state", () => {
+      // check if canvasRef.current is defined and has a toDataURL method (long base64 string that represents the drawing on the canvas)
+      if (!canvasRef.current?.toDataURL()) return;
+      // Send the current canvas state to the server
+      socket.emit("canvas-state", canvasRef.current.toDataURL());
+    });
+
+    socket.on("canvas-state-from-server", (dataURL: string) => {
+      // console.log("Received canvas state from server");
+      const img = new Image();
+      img.src = dataURL;
+      img.onload = () => {
+        ctx?.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx?.drawImage(img, 0, 0);
+      };
+    });
+
+    // Listen for draw-line events from the server and draw them on the canvas in real-time for all connected clients
+    socket.on("draw-line", (data) => {
+      if (!ctx) return;
+      drawLine({
+        prevPoint: data.prevPoint,
+        currentPoint: data.currentPoint,
+        ctx,
+        selectedColor: data.color,
+        lineWidth: data.lineWidth,
+      });
+    });
+
+    socket.on("clear", clear);
+
+    // Cleanup all socket listeners on unmount
+    return () => {
+      socket.off("get-canvas-state");
+      socket.off("canvas-state-from-server");
+      socket.off("draw-line");
+      socket.off("clear");
+    };
+  }, [canvasRef, clear]);
+
+  function createLine({ prevPoint, currentPoint, ctx }: Draw) {
+    socket.emit("draw-line", {
+      prevPoint,
+      currentPoint,
+      color: selectedColor,
+      lineWidth,
+    });
+    drawLine({
+      prevPoint,
+      currentPoint,
+      ctx,
+      selectedColor,
+      lineWidth,
+    });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +91,12 @@ const Page: FC<PageProps> = ({}) => {
   // Handler for slider change
   const handleLineWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLineWidth(Number(e.target.value));
+  };
+
+  // Handler for clear button
+  const handleClearCanvas = () => {
+    clear();
+    socket.emit("clear");
   };
 
   return (
@@ -73,7 +126,7 @@ const Page: FC<PageProps> = ({}) => {
           <button
             type="button"
             className="bg-red-500 text-white px-4 py-2 rounded-md"
-            onClick={clear}
+            onClick={handleClearCanvas}
           >
             Clear Canvas
           </button>
