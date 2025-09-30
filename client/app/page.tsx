@@ -69,7 +69,9 @@ const Page: FC<PageProps> = ({}) => {
       socket.off("draw-line");
       socket.off("clear");
     };
-  }, [canvasRef, clear]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasRef]);
+  // disable for [clear]
 
   function createLine({ prevPoint, currentPoint, ctx }: Draw) {
     socket.emit("draw-line", {
@@ -105,6 +107,22 @@ const Page: FC<PageProps> = ({}) => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
+      <div className="text-3xl font-bold">Kell&apos;s Scribbl.io Clone</div>
+      <div className="text-lg">
+        (WIP) A simple clone of the popular online drawing game Scribbl.io for
+        learning socket.io server-client
+      </div>
+      <div className="text-lg mb-4">
+        You can open multiple tabs to test real-time collaboration{" "}
+        <a
+          href="https://simple-skribblio-clone.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 font-bold underline"
+        >
+          Here!
+        </a>
+      </div>
       <canvas
         onMouseDown={onMouseDown}
         ref={canvasRef}
