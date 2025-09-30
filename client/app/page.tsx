@@ -20,7 +20,7 @@ const Page: FC<PageProps> = ({}) => {
   const [selectedColor, setSelectedColor] = useState("#000000");
   const [lineWidth, setLineWidth] = useState(5);
 
-  const { canvasRef, onMouseDown, clear } = useDraw(createLine);
+  const { canvasRef, onMouseDown, onTouchStart, clear } = useDraw(createLine);
 
   useEffect(() => {
     setMounted(true);
@@ -43,7 +43,7 @@ const Page: FC<PageProps> = ({}) => {
       const img = new Image();
       img.src = dataURL;
       img.onload = () => {
-        ctx?.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        // ctx?.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx?.drawImage(img, 0, 0);
       };
     });
@@ -125,10 +125,12 @@ const Page: FC<PageProps> = ({}) => {
       </div>
       <canvas
         onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
         ref={canvasRef}
         width={800}
         height={600}
         className="border border-black rounded-md"
+        style={{ touchAction: "none" }} // Prevent default touch behaviors
       />
       <div className="flex gap-4">
         <div className="flex flex-col items-center">

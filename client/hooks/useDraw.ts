@@ -3,15 +3,21 @@ import { useEffect, useRef, useState } from "react";
 export const useDraw = (
   onDraw: ({ ctx, currentPoint, prevPoint }: Draw) => void
 ) => {
-  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
   // add ref for canvas element
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // add ref to keep track of previous point
   const prevPoint = useRef<Point | null>(null);
 
   const onMouseDown = () => {
-    console.log("mouse down");
-    setIsMouseDown(true);
+    // console.log("mouse down");
+    setIsDrawing(true);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent scrolling
+    // console.log("touch start");
+    setIsDrawing(true);
   };
 
   const clear = () => {
@@ -25,13 +31,22 @@ export const useDraw = (
   };
 
   useEffect(() => {
-    // define mouse event handler
-    const handler = (event: MouseEvent) => {
-      // if mouse is not down, do nothing
-      if (!isMouseDown) return;
+    // Helper function to get point from mouse or touch event
+    const computePointInCanvas = (clientX: number, clientY: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
 
-      // get current mouse position in canvas
-      const currentPoint = computePointInCanvas(event);
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: clientX - rect.left,
+        y: clientY - rect.top,
+      };
+    };
+
+    // Mouse event handler
+    const mouseHandler = (event: MouseEvent) => {
+      if (!isDrawing) return;
+      const currentPoint = computePointInCanvas(event.clientX, event.clientY);
 
       const ctx = canvasRef.current?.getContext("2d");
       if (!ctx || !currentPoint) return;
@@ -44,34 +59,52 @@ export const useDraw = (
       prevPoint.current = currentPoint;
     };
 
-    // helper function to compute and return mouse position in canvas only, or null if not in canvas
-    const computePointInCanvas = (e: MouseEvent) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return null;
+    // Touch event handler
+    const touchHandler = (event: TouchEvent) => {
+      event.preventDefault(); // Prevent scrolling
+      if (!isDrawing) return;
 
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
+      const touch = event.touches[0];
+      if (!touch) return;
+
+      const currentPoint = computePointInCanvas(touch.clientX, touch.clientY);
+
+      const ctx = canvasRef.current?.getContext("2d");
+      if (!ctx || !currentPoint) return;
+
+      onDraw({
+        ctx,
+        currentPoint,
+        prevPoint: prevPoint.current,
+      });
+      prevPoint.current = currentPoint;
     };
 
-    const mouseUpHandler = () => {
-      setIsMouseDown(false);
+    const endHandler = () => {
+      setIsDrawing(false);
       prevPoint.current = null;
     };
 
-    // add mouse event listeners to canvas
-    canvasRef.current?.addEventListener("mousemove", handler);
-    window.addEventListener("mouseup", mouseUpHandler);
+    // Add event listeners
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.addEventListener("mousemove", mouseHandler);
+      canvas.addEventListener("touchmove", touchHandler, { passive: false });
+    }
 
-    // cleanup event listeners on unmount
+    window.addEventListener("mouseup", endHandler);
+    window.addEventListener("touchend", endHandler);
+
+    // Cleanup event listeners on unmount
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      canvasRef.current?.removeEventListener("mousemove", handler);
-      window.removeEventListener("mouseup", mouseUpHandler);
+      if (canvas) {
+        canvas.removeEventListener("mousemove", mouseHandler);
+        canvas.removeEventListener("touchmove", touchHandler);
+      }
+      window.removeEventListener("mouseup", endHandler);
+      window.removeEventListener("touchend", endHandler);
     };
-  }, [isMouseDown, onDraw]);
+  }, [isDrawing, onDraw]);
 
-  return { canvasRef, onMouseDown, clear };
+  return { canvasRef, onMouseDown, onTouchStart, clear };
 };
