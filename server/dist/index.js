@@ -38,6 +38,6 @@ io.on("connection", (socket) => {
 });
 app.get("/", (_req, res) => res.send("OK"));
 app.get("/healthz", (_req, res) => res.send("healthy"));
-server.listen(port, "0.0.0.0", () => {
+server.listen(Number(process.env.PORT) || 3001, "0.0.0.0", () => {
     console.log(`server running & listening on port ${port}`);
 });
